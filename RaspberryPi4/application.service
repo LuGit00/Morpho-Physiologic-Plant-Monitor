@@ -1,0 +1,14 @@
+[Unit]
+Description=Plant Monitor Service
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+ExecStart=/usr/local/bin/application
+WorkingDirectory=/var/www/html/data
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

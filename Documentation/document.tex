@@ -1,0 +1,167 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\title{Implementação de uma Estrutura para a Medição de Especificações Morfo-Fisiológicas em Plantas Herbáceas}
+\author{Luciano Alves do Brasil Schindel Machado}
+\date{\today}
+
+
+\begin{document}
+	
+	\maketitle
+	
+	\begin{abstract}
+		\noindent A análise quantitativa de características de plantas, conhecida como fenotipagem, é fundamental para avanços na agricultura, botânica e pesquisa ecológica. Medições precisas e repetíveis de especificações de plantas permitem a avaliação de crescimento, saúde, resposta ao estresse e potencial de rendimento. Este trabalho fornece uma visão geral referenciada de metodologias padrão para medição de traços morfológicos e fisiológicos chave em plantas verdes e folhosas. Ele abrange parâmetros fundamentais como dimensões da planta, biomassa e conteúdo de água, bem como técnicas não-destrutivas envolvendo análise de imagem digital para avaliações colorimétricas e espaciais.
+	\end{abstract}
+	
+	\section{Introdução}
+	
+	A medição sistemática de traços de plantas, ou fenotipagem, é uma pedra angular da ciência das plantas, fornecendo dados críticos para a compreensão das respostas das plantas a fatores ambientais, genéticos e agronômicos \cite{Fiorani2013, Araus2014, Pieruschka2019}. Quantificar esses traços é essencial para tudo, desde programas de melhoramento seletivo até estudos de impacto das mudanças climáticas \cite{Furbank2011}. Historicamente, essas medições eram realizadas manualmente --- um processo subjetivo e intensivo em mão de obra \cite{Rahaman2015}. Contudo, o advento das plataformas de fenotipagem de alto rendimento (HTP), que integram análise automatizada de imagem e computacional, revolucionou o campo ao permitir uma coleta de dados mais precisa e escalável \cite{Cobb2013, Li2014}. Este trabalho sintetiza esses métodos manuais fundamentais com abordagens modernas baseadas em imagem para fornecer um guia prático e referenciado.
+	
+	\section{Uma Estrutura para Medição Automatizada}
+	
+	\subsection{Parâmetros Fundamentais da Planta}
+	Uma avaliação abrangente da condição de uma planta baseia-se em um conjunto de parâmetros fundamentais que descrevem sua estrutura física (morfologia) e status funcional (fisiologia). Traços morfológicos são indicadores primários de crescimento e incluem \textbf{dimensões da planta} (altura e extensão da copa), \textbf{área foliar} e \textbf{biomassa} total acumulada (medida como peso fresco ou seco) \cite{PerezHarguindeguy2013, Sestak1971}. Traços fisiológicos, inversamente, oferecem insights sobre a saúde da planta. Estes incluem \textbf{propriedades colorimétricas} (esverdeamento da folha), que servem como um proxy para o conteúdo de clorofila e o status nutricional, e o \textbf{Conteúdo Relativo de Água (RWC)}, uma medida crítica da hidratação e do nível de estresse da planta \cite{Gitelson2003, Jones2007}. Juntos, este conjunto de parâmetros fornece uma visão holística do fenótipo da planta.
+	
+	\subsection{Parâmetros Viáveis para Sistemas Embarcados}
+	Um sistema de imagem embarcado, projetado para análise não-destrutiva, pode efetivamente abordar um subconjunto específico desses parâmetros fundamentais. Medições destrutivas, como a determinação de \textbf{biomassa} ou \textbf{RWC}, são inerentemente incompatíveis, pois exigem a colheita ou excisão do tecido da planta. Contudo, um sistema automatizado equipado com uma câmera é excepcionalmente adequado para capturar dados morfológicos e colorimétricos. A partir de uma única imagem bem iluminada, é possível medir \textbf{dimensões da planta} e a \textbf{cobertura geral da copa} (um proxy bidimensional para a área foliar) \cite{Paulus2019}. Além disso, a mesma imagem contém as informações de cor necessárias para realizar uma \textbf{análise colorimétrica} da folhagem \cite{Karcher2003}. Portanto, o conjunto de parâmetros que um sistema embarcado pode abordar praticamente inclui dimensões da planta, cobertura da copa e esverdeamento da folha.
+	
+	\subsection{Parâmetros com Determinismo Matemático}
+	Dentro do subconjunto de medições viáveis para um sistema embarcado, existe um grupo central de parâmetros que podem ser derivados com determinismo matemático direto dos dados da imagem. Estas são medições que não requerem modelagem preditiva ou inferência de aprendizado de máquina, mas são baseadas em cálculos diretos de informações de pixel. Depois que uma imagem é processada e a planta é segmentada de seu fundo, esses parâmetros determinísticos podem ser calculados. Primeiro, a \textbf{cobertura da copa} é uma simples razão: o número de pixels da planta dividido pelo número total de pixels na imagem \cite{Golzarian2011}. Segundo, as \textbf{dimensões da planta} (altura e largura) são determinadas calculando a caixa delimitadora dos pixels segmentados da planta e convertendo essas medições de pixel para unidades do mundo real usando um fator de escala pré-calibrado. Terceiro, um \textbf{índice de esverdeamento} pode ser deterministicamente calculado como a média estatística ou mediana dos valores de matiz de todos os pixels identificados como pertencentes à planta \cite{Karcher2003}. Esses três parâmetros são fundamentais porque são as saídas diretas, objetivas e computacionalmente simples de um pipeline de análise de imagem.
+	
+	\subsubsection{Área da Copa e Índice de Cor da Vista de Cima para Baixo}
+	Usando uma ESP32-CAM de cima para baixo, o algoritmo envolve a captura de uma imagem, convertendo-a para o espaço de cor HSV e criando uma máscara binária, $M_{top}$, por meio de um limiar de cor para isolar os pixels da planta \cite{Hamuda2016}. Desta máscara, a \textbf{Área da Copa ($A_c$)} é deterministicamente calculada somando todos os pixels da planta (onde o valor do pixel da planta é 1) e multiplicando por um fator de calibração, $C_{area}$ \cite{Golzarian2011}. O \textbf{Índice de Cor ($I_{hue}$)} é o valor médio de matiz ($H$) de todos os pixels onde a máscara é positiva \cite{Karcher2003}.
+	\begin{equation}
+		A_c = \left( \sum_{i,j} M_{top}(i,j) \right) \times C_{area}
+	\end{equation}
+	\begin{equation}
+		I_{hue} = \frac{\sum_{i,j \text{ onde } M_{top}=1} H(i,j)}{\sum_{i,j} M_{top}(i,j)}
+	\end{equation}
+	
+	
+	\subsubsection{Altura e Larguras Ortogonais das Vistas Laterais}
+	As duas câmeras laterais ortogonais fornecem as dimensões externas da planta. Para cada vista, uma imagem é capturada e uma máscara binária ($M_{side1}$, $M_{side2}$) é gerada. O algoritmo então encontra a caixa delimitadora da silhueta da planta em cada máscara para extrair sua altura e largura em pixels ($h_{pix}$, $w_{pix}$) \cite{Hartmann2011}. A \textbf{Altura da Planta ($H_p$)} é determinada a partir da altura da caixa delimitadora de uma vista lateral ($h_{pix1}$), enquanto as \textbf{Larguras Ortogonais ($W_1, W_2$)} são determinadas a partir das larguras das caixas delimitadoras de cada vista perpendicular ($w_{pix1}, w_{pix2}$). Esses valores são convertidos para unidades do mundo real por um fator de calibração, $C_{length}$.
+	\begin{equation}
+		H_p = h_{pix1} \times C_{length}; \quad W_1 = w_{pix1} \times C_{length}; \quad W_2 = w_{pix2} \times C_{length}
+	\end{equation}
+	
+	\subsubsection{Estimação Volumétrica via Escultura de Voxel}
+	Um proxy determinístico para o volume é calculado combinando as três vistas perpendiculares usando escultura de espaço, uma técnica clássica para reconstrução 3D de silhuetas \cite{Pound2014}. O método define uma grade 3D de voxels, $V$, que engloba a planta. As máscaras binárias das vistas de cima e laterais são projetadas através desta grade, esculpindo voxels que caem fora da silhueta da planta. O \textbf{Proxy Volumétrico ($V_p$)} é a soma de todos os voxels restantes ($V_{final}$) na grade após a conclusão do processo de escultura, onde cada voxel restante tem um valor de 1.
+	\begin{equation}
+		V_p = \sum_{i,j,k} V_{final}(i,j,k)
+	\end{equation}
+	
+	\section{Descrição de Hardware e de Software}
+	O sistema proposto é uma solução de fenotipagem de plantas embarcada, concebida para monitoramento contínuo e não-destrutivo de parâmetros morfo-fisiológicos em plantas herbáceas. A arquitetura do sistema é organizada em três camadas interconectadas: a camada de aquisição de dados, a camada de processamento e controle, e a camada de interface e visualização. Esta integração de hardware de baixo custo com software personalizado automatiza a aquisição de imagens, o processamento e a visualização de dados, permitindo uma análise precisa e escalável do fenótipo da planta.
+	
+	\subsection{Hardware}
+	\subsubsection{Visão Geral da Arquitetura Física}
+	A estrutura física do sistema é projetada para otimizar a captura de dados tridimensionais da planta. No centro, a planta é posicionada dentro de um ambiente controlado, tipicamente um gabinete com iluminação uniforme. Três módulos de câmera são dispostos ortogonalmente ao redor da planta: uma câmera superior (visão de cima para baixo) e duas câmeras laterais (visões perpendiculares entre si). Essas câmeras são conectadas sem fio a um computador de placa única que atua como o controlador do sistema, coordenando a aquisição de imagens e o processamento subsequente. A fonte de alimentação é dimensionada para suportar todos os componentes, garantindo operação contínua e estável.
+	
+	\subsubsection{Raspberry Pi 4}
+	O Raspberry Pi 4 (RPi 4) atua como a unidade de processamento central e o servidor do sistema. Ele é equipado com um processador Broadcom BCM2711 de quatro núcleos Cortex-A72 (ARM v8) de 64 bits a 1.5\,GHz, oferecendo desempenho robusto para tarefas de visão computacional. As opções de memória RAM incluem 2\,GB, 4\,GB ou 8\,GB de SDRAM LPDDR4-3200, proporcionando flexibilidade para diferentes demandas de processamento \cite{RaspberryPi4Specs}. Em termos de conectividade, o RPi 4 possui Wi-Fi IEEE 802.11ac dual-band (2.4\,GHz e 5.0\,GHz), Bluetooth 5.0, Gigabit Ethernet, duas portas USB 3.0 e duas portas USB 2.0, facilitando a comunicação com as câmeras e o acesso à rede.
+	
+	\subsubsection{Módulos ESP32-CAM}
+	Os módulos ESP32-CAM são empregados como os sensores de imagem remotos. Cada módulo integra um processador ESP32-S (dual-core de 240\,MHz), 4\,MB de Flash e 520\,KB de SRAM, complementados por 4\,MB de PSRAM, o que é suficiente para a captura e transmissão de imagens \cite{ESP32CAMSpecs}. A câmera OV2640 de 2\,MP, comumente presente nesses módulos, oferece resolução adequada para a fenotipagem. A conectividade Wi-Fi (802.11 b/g/n) e Bluetooth 4.2 BLE do ESP32-CAM permite a implantação sem fio e a comunicação eficiente com o Raspberry Pi.
+	
+	\subsubsection{Estrutura de Suporte e Iluminação}
+	A estrutura de suporte é um gabinete ou caixa que aloja a planta e as câmeras, garantindo o posicionamento preciso e ortogonal dos módulos ESP32-CAM. Este gabinete é crucial para manter um ambiente de imagem consistente, minimizando variações de fundo e iluminação que poderiam comprometer a precisão da análise. A iluminação interna é projetada para ser uniforme e difusa, eliminando sombras fortes e garantindo que as imagens capturadas sejam de alta qualidade para o processamento de visão computacional.
+	
+	\subsubsection{Gerenciamento de Energia}
+	O gerenciamento de energia é um aspecto crítico para a operação contínua e confiável do sistema. O Raspberry Pi 4 pode consumir de aproximadamente 3\,W em modo ocioso a 7\,W sob carga intensa \cite{RaspberryPi4Power}. Cada módulo ESP32-CAM, por sua vez, consome entre 0.8\,W e 1.5\,W durante a operação ativa com Wi-Fi e câmera \cite{ESP32CAMPower}. Para suportar o Raspberry Pi e as três ESP32-CAMs, uma fonte de alimentação com capacidade total de pelo menos 7.5\,W (3\,W para o Pi ocioso + 3 $\times$ 1.5\,W para as câmeras ativas) é o mínimo. Recomenda-se uma fonte de 5\,V com 3\,A (15\,W) ou mais para garantir margem de segurança e estabilidade, especialmente durante picos de consumo ou quando o Raspberry Pi estiver sob carga máxima. A escolha de uma fonte de alimentação adequada é vital para evitar quedas de tensão e instabilidade do sistema, que podem levar a reinicializações inesperadas ou falhas na aquisição de dados.
+	
+	\subsubsection{Lista de Materiais (BOM)}
+	A seguir, é apresentada uma lista dos principais componentes de hardware necessários para a implementação do sistema:
+	\begin{itemize}
+		\item \textbf{Raspberry Pi 4}: 1 unidade.
+		\item \textbf{Módulos ESP32-CAM}: 3 unidades.
+		\item \textbf{Fonte de Alimentação 5V, 3A (mínimo)}: 1 unidade.
+		\item \textbf{Cartão MicroSD (16GB ou superior)}: 1 unidade (para o Raspberry Pi).
+		\item \textbf{Cabos Micro USB para ESP32-CAM}: 3 unidades.
+		\item \textbf{Gabinete/Estrutura de Suporte}: 1 unidade (personalizável).
+		\item \textbf{Iluminação LED Difusa}: Quantidade variável (para iluminação uniforme).
+	\end{itemize}
+	
+	\subsection{Software}
+	\subsubsection{Sistema Operacional Linux}
+	O Raspberry Pi executa uma distribuição Linux (Raspberry Pi OS), fornecendo um ambiente robusto e flexível para a execução de todos os softwares do sistema. O Linux oferece a capacidade de gerenciar serviços em segundo plano, manipular arquivos e diretórios, e executar comandos de linha de forma eficiente, que são essenciais para a operação contínua do sistema. O \texttt{systemd} é o sistema de inicialização e gerenciador de serviços do Linux. Ele é utilizado para garantir que a aplicação principal (\texttt{application}) seja executada como um serviço em segundo plano, iniciando automaticamente na inicialização do sistema e sendo reiniciada em caso de falha, o que assegura a operação contínua e autônoma do sistema de monitoramento. Para o gerenciamento de rede, pacotes como \texttt{NetworkManager}, \texttt{dnsmasq} e \texttt{hostapd} são instalados. Estes pacotes fornecem as ferramentas necessárias para estabelecer a comunicação entre o Raspberry Pi e os módulos ESP32-CAM. No entanto, para garantir o controle manual da rede e evitar conflitos com configurações automáticas, o \texttt{NetworkManager} pode ser configurado para ignorar certas interfaces ou ter seus serviços de \texttt{dnsmasq} e \texttt{hostapd} desativados ou bloqueados, permitindo a operação de versões independentes desses serviços, conforme necessário para a criação de um hotspot Wi-Fi dedicado.
+	
+	\subsubsection{Servidor Web Lighttpd}
+	Lighttpd é um servidor web leve e de alto desempenho, ideal para o Raspberry Pi devido ao seu baixo consumo de recursos. Ele é configurado, através do arquivo \texttt{/etc/lighttpd/lighttpd.conf}, para servir a interface web (arquivos HTML, CSS, JavaScript) e para executar os scripts CGI. Sua eficiência garante que a interface do usuário seja responsiva e acessível via navegador, permitindo a visualização dos dados da planta e o controle básico do sistema. Os scripts CGI (Common Gateway Interface) são programas executáveis que permitem a interação dinâmica entre o servidor web e o usuário. O \texttt{index.cgi} é um script C que gera a interface web principal. Ele lê dados de arquivos de texto como \texttt{devices.txt}, \texttt{plants.txt} e \texttt{processes.txt} para exibir informações sobre dispositivos conectados, plantas cadastradas e o status do timer global. Ele também processa requisições POST para adicionar plantas, atribuir dispositivos e controlar o timer de processamento. A interface exibe imagens processadas e gráficos de métricas gerados pelo subsistema de visão computacional. O \texttt{ping.cgi} é um script C simples invocado pelos dispositivos ESP32-CAM para registrar sua presença, atualizando o \texttt{ping.txt} com o endereço IP do dispositivo e um timestamp, o que permite à aplicação principal monitorar a conectividade dos dispositivos.
+	
+	\subsubsection{Aplicação de Processamento (\texttt{application})}
+	A aplicação principal, \texttt{application.c}, é compilada em C e executada como um serviço em segundo plano, gerenciado pelo \texttt{systemd}. Ela atua como o orquestrador central do sistema, operando em um loop contínuo para gerenciar a coleta de dados, o estado dos dispositivos e o ciclo de processamento de imagens e métricas.
+	
+	A comunicação entre os diferentes componentes de software é realizada principalmente através de arquivos de texto no diretório \texttt{/var/www/html/data/}. A \texttt{application} interage com esses arquivos da seguinte forma:
+	
+	\textbf{Gerenciamento de Pings e Dispositivos}: A aplicação lê periodicamente o arquivo \texttt{ping.txt} para identificar os endereços IP dos dispositivos ESP32-CAM ativos. Este arquivo é preenchido pelos próprios módulos ESP32-CAM ao fazerem um "ping" para o servidor web via \texttt{ping.cgi}. Com base nessas informações, a \texttt{application} mantém e atualiza o arquivo \texttt{devices.txt}, que armazena detalhes de cada dispositivo, incluindo seu ID, IP, a qual planta e posição está atribuído, o último timestamp de ping e o comando atual. Novos dispositivos são adicionados dinamicamente, e aqueles que não enviam pings por um período prolongado são marcados como inativos ou removidos, garantindo uma lista atualizada de hardware disponível e seu status de conectividade.
+	
+	\textbf{Leitura de Dados de Plantas}: As configurações e nomes das plantas são carregados do arquivo \texttt{plants.txt}. Este arquivo é gerenciado exclusivamente pela interface web (\texttt{index.cgi}), que permite ao usuário adicionar novas plantas. A informação lida pela \texttt{application} é utilizada para associar dispositivos a plantas específicas e para organizar os dados de processamento de imagem por planta.
+	
+	\textbf{Gerenciamento do Timer Global}: Um timer global, persistido no arquivo \texttt{processes.txt}, controla o ciclo de processamento de imagens. Este arquivo armazena o timestamp da última vez que um ciclo de processamento foi iniciado e a duração configurada para o ciclo. A \texttt{application} monitora este timer e, quando ele expira (ou é explicitamente iniciado/resetado via interface web através de \texttt{index.cgi}), ela redefine o timestamp do timer para o momento atual e inicia um novo ciclo de processamento para todas as plantas cadastradas.
+	
+	\textbf{Processamento de Imagens e Métricas}: Para cada planta, a \texttt{application} coordena a aquisição e o processamento das imagens, invocando o executável \texttt{generate\_plant\_images}.
+	
+	\textit{Fluxo de Processamento de Imagens e Métricas:}
+	\begin{enumerate}
+		\item A \texttt{application} tenta buscar imagens das câmeras ESP32-CAM atribuídas (posições X, Y, Z) usando o comando \texttt{wget}. As imagens são salvas como arquivos \texttt{plant\_ID\_initial\_X.jpg}, \texttt{plant\_ID\_initial\_Y.jpg} e \texttt{plant\_ID\_initial\_Z.jpg} no diretório \texttt{/var/www/html/data/images/}.
+		\item Se a aquisição de uma imagem falhar (por exemplo, se a câmera não estiver acessível ou em um ambiente simulado), a \texttt{application} gera uma imagem de espaço reservado com informações básicas (ID da planta, posição) para garantir que o pipeline de processamento de imagem tenha sempre uma entrada válida.
+		\item Após a aquisição das imagens iniciais (sejam elas reais ou placeholders), a \texttt{application} invoca o executável \texttt{generate\_plant\_images} para realizar uma série de operações de visão computacional e cálculo de métricas.
+		\item O \texttt{generate\_plant\_images} carrega as imagens iniciais e aplica diversas técnicas de processamento, como a geração de máscaras binárias (\texttt{\_mask.jpg}), conversão para tons de cinza (\texttt{\_grayscale.jpg}), detecção de bordas (\texttt{\_edges.jpg}), extração do canal verde (\texttt{\_green.jpg}) e filtragem de limiar verde HSV (\texttt{\_green\_filtered.jpg}) para segmentação da planta. Cada imagem processada é salva no diretório \texttt{/var/www/html/data/images/}.
+		\item A partir dessas imagens processadas, o \texttt{generate\_plant\_images} calcula métricas morfo-fisiológicas fundamentais: Área da Copa ($A_c$), Índice de Cor ($I_{hue}$), Altura da Planta ($H_p$), Larguras Ortogonais ($W_1, W_2$) e Proxy Volumétrico ($V_p$).
+		\item As métricas calculadas para a execução atual são salvas em um arquivo de texto timestampado (ex: \texttt{plant\_ID\_metrics\_YYYYMMDD\_HHMMSS.txt}) no diretório de imagens, criando um registro histórico detalhado de cada medição.
+		\item Utilizando o histórico de todas as medições anteriores (lendo os arquivos \texttt{\_metrics\_.txt} existentes), o \texttt{generate\_plant\_images} gera imagens de gráficos de linha (ex: \texttt{plant\_ID\_Canopy\_Area\_Ac\_graph.png}), visualizando as tendências das métricas chave ao longo do tempo.
+	\end{enumerate}
+	Este passo é fundamental para transformar dados visuais brutos em informações quantificáveis sobre a planta e suas tendências de crescimento.
+	
+	\subsubsection{Serviço Systemd (\texttt{application.service})}
+	O \texttt{application.service} é um arquivo de unidade \texttt{systemd} que garante que a aplicação \texttt{application} seja executada como um serviço em segundo plano. Ele configura a aplicação para iniciar automaticamente na inicialização do sistema e a reinicia em caso de falha, garantindo a operação contínua do sistema de monitoramento.
+	
+	\subsection{Resultados}
+	A interface web, acessível via navegador, apresenta uma visão abrangente do estado do sistema e das plantas. A seção "Connected Devices" exibe uma tabela detalhada de todos os dispositivos ESP32-CAM detectados, incluindo seu ID, endereço IP, a qual planta e posição estão atribuídos, o último ping recebido, o comando atual e uma imagem ao vivo (ou placeholder). A seção "Plants" permite o cadastro de novas plantas e a atribuição de dispositivos a posições específicas (X, Y, Z) para cada planta. A seção "Processes" exibe o status do timer global de processamento, permitindo que o usuário defina a duração do ciclo, inicie ou reinicie o processo. Ao clicar em "Details" para uma planta específica, uma tabela expandida é exibida, mostrando imagens processadas em várias etapas (originais, máscaras binárias, tons de cinza, detecção de bordas, canais de cor e filtros de verde), bem como as métricas morfo-fisiológicas calculadas (Área da Copa, Índice de Cor, Altura, Larguras Ortogonais e Proxy Volumétrico). Gráficos de linha são gerados e exibidos para as métricas chave, ilustrando as tendências de crescimento e saúde da planta ao longo do tempo.
+	
+	\section{Conclusão}
+	
+	A medição das especificações da planta é indispensável para melhorar a produtividade agrícola e o entendimento ecológico. Embora exista uma ampla gama de parâmetros, um subconjunto cuidadosamente selecionado --- incluindo cobertura da copa, dimensões e cor --- é particularmente adequado para automação usando sistemas de visão embarcados. Esses traços específicos podem ser calculados com determinismo matemático, oferecendo uma alternativa objetiva e escalável aos métodos manuais tradicionais \cite{Rahaman2015, Li2014}. Ao alavancar software compilado como o OpenCV, esses sistemas podem realizar análises de alto rendimento, fornecendo uma estrutura robusta e acessível para caracterizar com precisão o crescimento da planta \cite{Bradski2000, Schindelin2012}.
+	
+	\begin{thebibliography}{99}
+		\bibitem{Adamsen1999} Adamsen, F. J., Pinter Jr, P. J., Barnes, E. M., LaMorte, R. L., Wall, G. W., Leavitt, S. W., \& Kimball, B. A. (1999). Measuring wheat senescence with a digital camera. \textit{Crop Science, 39}(3), 719-724.
+		\bibitem{Araus2014} Araus, J. L., \& Cairns, J. E. (2014). Field high-throughput phenotyping: the new crop breeding frontier. \textit{Trends in Plant Science, 19}(1), 52-61.
+		\bibitem{Barrs1962} Barrs, H. D., \& Weatherley, P. E. (1962). A re-examination of the relative turgidity technique for estimating water deficits in leaves. \textit{Australian Journal of Biological Sciences, 15}(3), 413-428.
+		\bibitem{Beadle1993} Beadle, C. L. (1993). Growth analysis. In \textit{Photosynthesis and production in a changing environment} (pp. 36-46). Springer, Dordrecht.
+		\bibitem{Bradski2000} Bradski, G. (2000). The OpenCV Library. \textit{Dr. Dobb's Journal of Software Tools}.
+		\bibitem{Cobb2013} Cobb, J. N., DeClerck, G., Greenberg, A., Clark, R., \& McCouch, S. (2013). Next-generation phenotyping: an expanded framework for rice breeding. \textit{Theoretical and Applied Genetics, 126}(7), 1651-1665.
+		\bibitem{Egorov2014} Egorov, A. V., Purmalis, O., Padhye, N. S., \& Gnezdilov, O. I. (2014). An approach for estimation of green vegetation cover in digital images. \textit{Journal of Computer and Communications, 2}(09), 11.
+		\bibitem{Fiorani2013} Fiorani, F., \& Schurr, U. (2013). Future scenarios for plant phenotyping. \textit{Annual Review of Plant Biology, 64}, 267-291.
+		\bibitem{Furbank2011} Furbank, R. T., \& Tester, M. (2011). Phenomics–technologies to relieve the phenotyping bottleneck. \textit{Trends in Plant Science, 16}(12), 635-644.
+		\bibitem{Gitelson2003} Gitelson, A. A., Gritz, Y., \& Merzlyak, M. N. (2003). Relationships between leaf chlorophyll content and spectral reflectance and algorithms for non-destructive chlorophyll assessment in higher plant leaves. \textit{Journal of Plant Physiology, 160}(3), 271-282.
+		\bibitem{Golzarian2011} Golzarian, M. R., Frick, R. A., Rajendran, K., Berger, B., Tester, M., \& Gilliham, M. (2011). Accurate inference of shoot biomass from high-throughput images of cereal plants. \textit{Plant Methods, 7}(1), 2.
+		\bibitem{Hamuda2016} Hamuda, E., Glavin, M., \& Jones, E. (2016). A survey of image processing techniques for plant extraction and segmentation in the field. \textit{Computers and Electronics in Agriculture, 125}, 184-199.
+		\bibitem{Hartmann2011} Hartmann, A., Czauderna, T., Hoffmann, R., Stein, N., \& Schreiber, F. (2011). HTPheno: An image analysis pipeline for high-throughput plant phenotyping. \textit{BMC Bioinformatics, 12}(1), 148.
+		\bibitem{Jones2007} Jones, H. G. (2007). Monitoring plant and soil water status: established and novel methods revisited and their relevance to studies of drought tolerance. \textit{Journal of Experimental Botany, 58}(2), 119-130.
+		\bibitem{Jonckheere2004} Jonckheere, I., Fleck, S., Nackaerts, K., Muys, B., Coppin, P., Weiss, M., \& Baret, F. (2004). Review of methods for in situ leaf area index determination Part I. Theories, sensors and hemispherical photography. \textit{Agricultural and Forest Meteorology, 121}(1-2), 19-35.
+		\bibitem{Karcher2003} Karcher, D. E., \& Richardson, M. D. (2003). Quantifying turfgrass color using digital image analysis. \textit{Crop Science, 43}(3), 943-951.
+		\bibitem{Li2014} Li, L., Zhang, Q., \& Huang, D. (2014). A review of imaging techniques for plant phenotyping. \textit{Sensors, 14}(11), 20078-20111.
+		\bibitem{LICOR2011} LI-COR Biosciences. (2011). \textit{LAI-2200C Plant Canopy Analyzer Instruction Manual}.
+		\bibitem{Markwell1995} Markwell, J., Osterman, J. C., \& Mitchell, J. L. (1995). Calibration of the Minolta SPAD-502 leaf chlorophyll meter. \textit{Photosynthesis Research, 46}(3), 467-472.
+		\bibitem{Paulus2019} Paulus, S. (2019). Measuring crops in 3D: a modern perspective on plant phenotyping. \textit{Journal of Experimental Botany, 70}(14), 3541-3546.
+		\bibitem{Pound2014} Pound, M. P., French, A. P., Atkinson, J. A., Wells, D. M., Bennett, M. J., \& Pridmore, T. P. (2014). 3D plant phenotyping: from high-throughput screening to detailed physiological understanding. \textit{Journal of experimental botany, 65}(21), 6061-6069.
+		\bibitem{PerezHarguindeguy2013} Pérez-Harguindeguy, N., et al. (2013). New handbook for standardised measurement of plant functional traits worldwide. \textit{Australian Journal of Botany, 61}(3), 167-234.
+		\bibitem{Pieruschka2019} Pieruschka, R., \& Schurr, U. (2019). Plant phenotyping: past, present, and future. \textit{Plant Phenomics, 2019}.
+		\bibitem{Poorter2009} Poorter, H., Niinemets, Ü., Poorter, L., Wright, I. J., \& Villar, R. (2009). Causes and consequences of variation in leaf mass per area (LMA): a meta‐analysis. \textit{New Phytologist, 182}(3), 565-588.
+		\bibitem{Poorter2000} Poorter, H., \& Nagel, O. (2000). The role of biomass allocation in the growth response of plants to different levels of light, CO2, nutrients and water: a quantitative review. \textit{Australian Journal of Plant Physiology, 27}(6), 595-607.
+		\bibitem{Rahaman2015} Rahaman, M. M., Chen, D., Gillani, Z., Klukas, C., \& Chen, M. (2015). Advanced phenotyping and phenotype data analysis for the study of plant growth and development. \textit{Frontiers in Plant Science, 6}, 619.
+		\bibitem{Schindelin2012} Schindelin, J., et al. (2012). Fiji: an open-source platform for biological-image analysis. \textit{Nature Methods, 9}(7), 676-682.
+		\bibitem{Sestak1971} Sesták, Z., Catský, J., \& Jarvis, P. G. (Eds.). (1971). \textit{Plant photosynthetic production: Manual of methods}. Dr. W. Junk N.V. Publishers.
+		\bibitem{Stoll2000} Stoll, P., \& Weiner, J. (2000). A neighborhood view of interactions among individual plants. In \textit{The geometry of ecological interactions} (pp. 11-27). Cambridge University Press.
+		\bibitem{vanderWalt2014} van der Walt, S., et al. (2014). scikit-image: image processing in Python. \textit{PeerJ, 2}, e453.
+		\bibitem{Watson1947} Watson, D. J. (1947). Comparative physiological studies on the growth of field crops: I. Variation in net assimilation rate and leaf area between species and varieties, and within and between years. \textit{Annals of Botany, 11}(41), 41-76.
+		\bibitem{Zhao2005} Zhao, D., Reddy, K. R., Kakani, V. G., \& Reddy, V. R. (2005). Nitrogen deficiency effects on plant growth, leaf photosynthesis, and hyperspectral reflectance properties of sorghum. \textit{European Journal of Agronomy, 22}(4), 391-403.
+	\end{thebibliography}
+	
+\end{document}
